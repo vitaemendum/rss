@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -21,7 +22,12 @@ type apiConfig struct {
 }
 
 func main() {
-	// 7.35.52
+    feed, err := urlToFeed("https://www.wagslane.dev/index.xml")
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(feed)
+
 	fmt.Println("Hello, World!")
 
 	godotenv.Load()
@@ -51,6 +57,9 @@ func main() {
 		DB: queries,
 	}
 
+
+    go startScraping(queries, 5, 10*time.Second)
+
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{
@@ -75,6 +84,8 @@ func main() {
 	v1Router.Get("/follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsGet))
 	v1Router.Post("/follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
 	v1Router.Delete("/follows/{id}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowDelete))
+
+    v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handlerGetPostsForUser))
 
 	router.Mount("/v1", v1Router)
 
